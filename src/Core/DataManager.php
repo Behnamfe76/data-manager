@@ -48,18 +48,17 @@ class DataManager
     }
 
     /**
-     * Import data with optional transformer and validator, with event hooks.
-     *
-     * Events: 'import.before', 'import.after', 'import.row', 'import.error'
+     * Import data with optional transformer, validator, event hooks, and chunking.
      *
      * @param string $type
      * @param mixed $source
      * @param callable|object|null $transformer
      * @param callable|object|null $validator
-     * @param array $errors (by reference) - collects validation errors
-     * @return iterable
+     * @param array $errors (by reference)
+     * @param int|null $chunkSize
+     * @return iterable|array[]
      */
-    public function import(string $type, $source, $transformer = null, $validator = null, array &$errors = [])
+    public function import(string $type, $source, $transformer = null, $validator = null, array &$errors = [], int $chunkSize = null)
     {
         EventDispatcher::dispatch('import.before', $type, $source);
         $result = null;
@@ -90,6 +89,8 @@ class DataManager
         }
         $transformer = $transformer ?: $this->transformer;
         $validator = $validator ?: $this->validator;
+        $buffer = [];
+        $count = 0;
         foreach ($result as $item) {
             $original = $item;
             if ($transformer) {
@@ -103,60 +104,78 @@ class DataManager
                 }
             }
             EventDispatcher::dispatch('import.row', $item);
-            yield $item;
+            if ($chunkSize) {
+                $buffer[] = $item;
+                $count++;
+                if ($count % $chunkSize === 0) {
+                    yield $buffer;
+                    $buffer = [];
+                }
+            } else {
+                yield $item;
+            }
+        }
+        if ($chunkSize && !empty($buffer)) {
+            yield $buffer;
         }
         EventDispatcher::dispatch('import.after', $type, $source);
     }
 
     /**
-     * Export data with optional transformer and event hooks.
-     *
-     * Events: 'export.before', 'export.after', 'export.row', 'export.error'
+     * Export data with optional transformer, event hooks, and chunking.
      *
      * @param string $type
      * @param iterable $data
      * @param mixed $target
      * @param callable|object|null $transformer
+     * @param int|null $chunkSize
      * @return void
      */
-    public function export(string $type, iterable $data, $target, $transformer = null)
+    public function export(string $type, iterable $data, $target, $transformer = null, int $chunkSize = null)
     {
         EventDispatcher::dispatch('export.before', $type, $target);
         $transformer = $transformer ?: $this->transformer;
-        if ($transformer) {
-            $data = array_map(function ($item) use ($transformer) {
-                $item = self::applyTransformer($transformer, $item);
-                EventDispatcher::dispatch('export.row', $item);
-                return $item;
-            }, is_array($data) ? $data : iterator_to_array($data));
+        $data = is_array($data) ? $data : iterator_to_array($data);
+        if ($chunkSize) {
+            $chunks = array_chunk($data, $chunkSize);
         } else {
-            $data = is_array($data) ? $data : iterator_to_array($data);
-            foreach ($data as $item) {
-                EventDispatcher::dispatch('export.row', $item);
-            }
+            $chunks = [$data];
         }
-        try {
-            switch (strtolower($type)) {
-                case 'csv':
-                    (new CsvExporter())->export($data, $target); break;
-                case 'json':
-                    (new JsonExporter())->export($data, $target); break;
-                case 'xml':
-                    (new XmlExporter())->export($data, $target); break;
-                case 'sql':
-                    (new SqlExporter())->export($data, $target); break;
-                case 'excel':
-                    (new ExcelExporter())->export($data, $target); break;
-                case 'model':
-                    (new ModelExporter())->export($data, $target); break;
-                case 'spatie':
-                    (new SpatieDataExporter())->export($data, $target); break;
-                default:
-                    throw new \InvalidArgumentException("Unsupported export type: $type");
+        foreach ($chunks as $chunk) {
+            if ($transformer) {
+                $chunk = array_map(function ($item) use ($transformer) {
+                    $item = self::applyTransformer($transformer, $item);
+                    EventDispatcher::dispatch('export.row', $item);
+                    return $item;
+                }, $chunk);
+            } else {
+                foreach ($chunk as $item) {
+                    EventDispatcher::dispatch('export.row', $item);
+                }
             }
-        } catch (\Throwable $e) {
-            EventDispatcher::dispatch('export.error', $e);
-            throw $e;
+            try {
+                switch (strtolower($type)) {
+                    case 'csv':
+                        (new CsvExporter())->export($chunk, $target); break;
+                    case 'json':
+                        (new JsonExporter())->export($chunk, $target); break;
+                    case 'xml':
+                        (new XmlExporter())->export($chunk, $target); break;
+                    case 'sql':
+                        (new SqlExporter())->export($chunk, $target); break;
+                    case 'excel':
+                        (new ExcelExporter())->export($chunk, $target); break;
+                    case 'model':
+                        (new ModelExporter())->export($chunk, $target); break;
+                    case 'spatie':
+                        (new SpatieDataExporter())->export($chunk, $target); break;
+                    default:
+                        throw new \InvalidArgumentException("Unsupported export type: $type");
+                }
+            } catch (\Throwable $e) {
+                EventDispatcher::dispatch('export.error', $e);
+                throw $e;
+            }
         }
         EventDispatcher::dispatch('export.after', $type, $target);
     }

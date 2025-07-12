@@ -142,6 +142,7 @@
             <li><a href="#transformers">Custom Transformers</a></li>
             <li><a href="#validation">Validation</a></li>
             <li><a href="#events">Event Hooks</a></li>
+            <li><a href="#chunking">Batch & Chunk Processing</a></li>
             <li><a href="#utilities">Utilities</a></li>
             <li><a href="#extending">Extending</a></li>
             <li><a href="#config-options">Config Options</a></li>
@@ -290,6 +291,25 @@ EventDispatcher::listen('export.error', function($exception) {
 EventDispatcher::listen('export.after', function($type, $target) {
     // After export
 });
+</code></pre>
+
+        <hr class="divider"/>
+        <h2 id="chunking">Batch & Chunk Processing</h2>
+        <div class="callout">
+            <strong>Advanced!</strong> Process large files in chunks by passing a <code>chunkSize</code> parameter to <code>import</code> or <code>export</code>. Each yielded value will be an array of items.
+        </div>
+        <h3>Example: Import in Chunks</h3>
+        <pre><code>use DataManager\Facades\DataManager;
+
+foreach (DataManager::import('csv', 'file.csv', null, null, $errors, 100) as $chunk) {
+    // $chunk is an array of up to 100 rows
+    // Process chunk
+}
+</code></pre>
+        <h3>Example: Export in Chunks</h3>
+        <pre><code>use DataManager\Facades\DataManager;
+
+DataManager::export('json', $data, 'file.json', null, 500); // Exports in chunks of 500
 </code></pre>
 
         <hr class="divider"/>
