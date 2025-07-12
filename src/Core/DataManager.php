@@ -19,6 +19,7 @@ use DataManager\Exports\SpatieDataExporter;
 use DataManager\Utils\EventDispatcher;
 use DataManager\Jobs\ImportJob;
 use DataManager\Jobs\ExportJob;
+use Illuminate\Support\Facades\Storage;
 
 class DataManager
 {
@@ -132,6 +133,36 @@ class DataManager
     }
 
     /**
+     * Read a file from local or external disk.
+     *
+     * @param string $path
+     * @return string
+     */
+    protected function readFile($path)
+    {
+        if (preg_match('/^([a-z0-9_]+):\/\/(.+)$/i', $path, $m)) {
+            return Storage::disk($m[1])->get($m[2]);
+        }
+        return file_get_contents($path);
+    }
+
+    /**
+     * Write a file to local or external disk.
+     *
+     * @param string $path
+     * @param string $contents
+     * @return void
+     */
+    protected function writeFile($path, $contents)
+    {
+        if (preg_match('/^([a-z0-9_]+):\/\/(.+)$/i', $path, $m)) {
+            Storage::disk($m[1])->put($m[2], $contents);
+            return;
+        }
+        file_put_contents($path, $contents);
+    }
+
+    /**
      * Import data with auto-detection of format if type is 'auto'.
      *
      * @param string $type
@@ -150,6 +181,12 @@ class DataManager
                 throw new \InvalidArgumentException('Could not auto-detect format for import.');
             }
             $type = $detected;
+        }
+        // If source is a disk path, fetch to temp file and use that
+        if (is_string($source) && preg_match('/^([a-z0-9_]+):\/\//i', $source)) {
+            $tmp = tempnam(sys_get_temp_dir(), 'dm_');
+            file_put_contents($tmp, $this->readFile($source));
+            $source = $tmp;
         }
         EventDispatcher::dispatch('import.before', $type, $source);
         $result = null;
@@ -241,6 +278,12 @@ class DataManager
             }
             $type = $detected;
         }
+        // If target is a disk path, write to temp file and upload after
+        $toDisk = null;
+        if (is_string($target) && preg_match('/^([a-z0-9_]+):\/\//i', $target)) {
+            $toDisk = $target;
+            $target = tempnam(sys_get_temp_dir(), 'dm_');
+        }
         EventDispatcher::dispatch('export.before', $type, $target);
         $transformer = $transformer ?: $this->transformer;
         $data = is_array($data) ? $data : iterator_to_array($data);
@@ -293,6 +336,10 @@ class DataManager
             }
         }
         EventDispatcher::dispatch('export.after', $type, $target);
+        if ($toDisk) {
+            $this->writeFile($toDisk, file_get_contents($target));
+            unlink($target);
+        }
     }
 
     /**

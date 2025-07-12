@@ -153,6 +153,7 @@
             <li><a href="#license">License</a></li>
             <li><a href="#webui">Web UI</a></li>
             <li><a href="#autodetect">Multi-format Auto-detection</a></li>
+            <li><a href="#external">External Storage Integration</a></li>
         </ul>
     </nav>
     <div class="main-content">
@@ -393,6 +394,24 @@ DataManager::exportWithTemplate('users_csv', $data, 'users_out.csv');
 </code></pre>
         <div style="color:#888; font-size:0.95em; margin-top:1em;">
             <b>Note:</b> You can pass a file path or a model class name as the data argument for export.
+        </div>
+
+        <hr class="divider"/>
+        <h2 id="external">External Storage Integration</h2>
+        <div class="callout">
+            <strong>Advanced!</strong> Import/export directly from/to any Laravel Filesystem disk (e.g., S3, FTP, local) using <code>disk://path/to/file</code> syntax.
+        </div>
+        <h3>Example: S3 Import/Export</h3>
+        <pre><code>use DataManager\Facades\DataManager;
+
+// Import from S3
+$rows = DataManager::import('auto', 's3://bucket/data.csv');
+
+// Export to S3
+DataManager::export('auto', $data, 's3://bucket/output.json');
+</code></pre>
+        <div style="color:#888; font-size:0.95em; margin-top:1em;">
+            <b>Note:</b> Supported disks: any configured in <code>config/filesystems.php</code> (e.g., s3, ftp, local, etc.).
         </div>
 
         <hr class="divider"/>
