@@ -24,6 +24,7 @@ class DataManager
 {
     protected $transformer = null;
     protected $validator = null;
+    protected $templates = [];
 
     /**
      * Register a custom transformer (callable or DataTransformerInterface).
@@ -47,6 +48,66 @@ class DataManager
     {
         $this->validator = $validator;
         return $this;
+    }
+
+    /**
+     * Register an import/export template.
+     *
+     * @param string $name
+     * @param array $config (keys: type, transformer, validator, chunkSize, etc.)
+     * @return $this
+     */
+    public function registerTemplate(string $name, array $config)
+    {
+        $this->templates[$name] = $config;
+        return $this;
+    }
+
+    /**
+     * Import using a registered template.
+     *
+     * @param string $templateName
+     * @param mixed $source
+     * @param array $errors (by reference)
+     * @return iterable|array[]
+     */
+    public function importWithTemplate(string $templateName, $source, array &$errors = [])
+    {
+        if (!isset($this->templates[$templateName])) {
+            throw new \InvalidArgumentException("Template not found: $templateName");
+        }
+        $tpl = $this->templates[$templateName];
+        return $this->import(
+            $tpl['type'],
+            $source,
+            $tpl['transformer'] ?? null,
+            $tpl['validator'] ?? null,
+            $errors,
+            $tpl['chunkSize'] ?? null
+        );
+    }
+
+    /**
+     * Export using a registered template.
+     *
+     * @param string $templateName
+     * @param iterable $data
+     * @param mixed $target
+     * @return void
+     */
+    public function exportWithTemplate(string $templateName, iterable $data, $target)
+    {
+        if (!isset($this->templates[$templateName])) {
+            throw new \InvalidArgumentException("Template not found: $templateName");
+        }
+        $tpl = $this->templates[$templateName];
+        $this->export(
+            $tpl['type'],
+            $data,
+            $target,
+            $tpl['transformer'] ?? null,
+            $tpl['chunkSize'] ?? null
+        );
     }
 
     /**
