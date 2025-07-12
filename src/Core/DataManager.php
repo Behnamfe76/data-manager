@@ -19,30 +19,105 @@ use DataManager\Exports\SpatieDataExporter;
 
 class DataManager
 {
-    public function import(string $type, $source)
+    protected $transformer = null;
+    protected $validator = null;
+
+    /**
+     * Register a custom transformer (callable or DataTransformerInterface).
+     *
+     * @param callable|object|null $transformer
+     * @return $this
+     */
+    public function setTransformer($transformer)
     {
+        $this->transformer = $transformer;
+        return $this;
+    }
+
+    /**
+     * Register a custom validator (callable or ValidatorInterface).
+     *
+     * @param callable|object|null $validator
+     * @return $this
+     */
+    public function setValidator($validator)
+    {
+        $this->validator = $validator;
+        return $this;
+    }
+
+    /**
+     * Import data with optional transformer and validator.
+     *
+     * @param string $type
+     * @param mixed $source
+     * @param callable|object|null $transformer
+     * @param callable|object|null $validator
+     * @param array $errors (by reference) - collects validation errors
+     * @return iterable
+     */
+    public function import(string $type, $source, $transformer = null, $validator = null, array &$errors = [])
+    {
+        $result = null;
         switch (strtolower($type)) {
             case 'csv':
-                return (new CsvImporter())->import($source);
+                $result = (new CsvImporter())->import($source);
+                break;
             case 'json':
-                return (new JsonImporter())->import($source);
+                $result = (new JsonImporter())->import($source);
+                break;
             case 'xml':
-                return (new XmlImporter())->import($source);
+                $result = (new XmlImporter())->import($source);
+                break;
             case 'sql':
-                return (new SqlImporter())->import($source);
+                $result = (new SqlImporter())->import($source);
+                break;
             case 'excel':
-                return (new ExcelImporter())->import($source);
+                $result = (new ExcelImporter())->import($source);
+                break;
             case 'model':
-                return (new ModelImporter())->import($source);
+                $result = (new ModelImporter())->import($source);
+                break;
             case 'spatie':
-                return (new SpatieDataImporter())->import($source);
+                $result = (new SpatieDataImporter())->import($source);
+                break;
             default:
                 throw new \InvalidArgumentException("Unsupported import type: $type");
         }
+        $transformer = $transformer ?: $this->transformer;
+        $validator = $validator ?: $this->validator;
+        foreach ($result as $item) {
+            $original = $item;
+            if ($transformer) {
+                $item = self::applyTransformer($transformer, $item);
+            }
+            if ($validator) {
+                if (!self::applyValidator($validator, $item)) {
+                    $errors[] = $original;
+                    continue;
+                }
+            }
+            yield $item;
+        }
     }
 
-    public function export(string $type, iterable $data, $target)
+    /**
+     * Export data with optional transformer.
+     *
+     * @param string $type
+     * @param iterable $data
+     * @param mixed $target
+     * @param callable|object|null $transformer
+     * @return void
+     */
+    public function export(string $type, iterable $data, $target, $transformer = null)
     {
+        $transformer = $transformer ?: $this->transformer;
+        if ($transformer) {
+            $data = array_map(function ($item) use ($transformer) {
+                return self::applyTransformer($transformer, $item);
+            }, is_array($data) ? $data : iterator_to_array($data));
+        }
         switch (strtolower($type)) {
             case 'csv':
                 return (new CsvExporter())->export($data, $target);
@@ -61,5 +136,39 @@ class DataManager
             default:
                 throw new \InvalidArgumentException("Unsupported export type: $type");
         }
+    }
+
+    /**
+     * Apply a transformer to a data item.
+     *
+     * @param callable|object $transformer
+     * @param mixed $item
+     * @return mixed
+     */
+    protected static function applyTransformer($transformer, $item)
+    {
+        if (is_callable($transformer)) {
+            return $transformer($item);
+        } elseif (is_object($transformer) && method_exists($transformer, 'transform')) {
+            return $transformer->transform($item);
+        }
+        throw new \InvalidArgumentException('Invalid transformer.');
+    }
+
+    /**
+     * Apply a validator to a data item.
+     *
+     * @param callable|object $validator
+     * @param mixed $item
+     * @return bool
+     */
+    protected static function applyValidator($validator, $item): bool
+    {
+        if (is_callable($validator)) {
+            return (bool)$validator($item);
+        } elseif (is_object($validator) && method_exists($validator, 'validate')) {
+            return (bool)$validator->validate($item);
+        }
+        throw new \InvalidArgumentException('Invalid validator.');
     }
 } 

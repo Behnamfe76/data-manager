@@ -139,6 +139,8 @@
             <li><a href="#configuration">Configuration</a></li>
             <li><a href="#core-features">Core Features</a></li>
             <li><a href="#formats">Formats & Examples</a></li>
+            <li><a href="#transformers">Custom Transformers</a></li>
+            <li><a href="#validation">Validation</a></li>
             <li><a href="#utilities">Utilities</a></li>
             <li><a href="#extending">Extending</a></li>
             <li><a href="#config-options">Config Options</a></li>
@@ -187,6 +189,68 @@
                 <pre><code>{{ example.code }}</code></pre>
             </div>
         </div>
+
+        <hr class="divider"/>
+        <h2 id="transformers">Custom Transformers</h2>
+        <div class="callout">
+            <strong>Advanced!</strong> You can apply a custom transformer to each item during import/export.<br>
+            Pass a callable or a class with a <code>transform( $item)</code> method.
+        </div>
+        <h3>Example: Using a Closure</h3>
+        <pre><code>use DataManager\Facades\DataManager;
+
+$rows = DataManager::import('csv', 'file.csv', function($item) {
+    $item['name'] = strtoupper($item['name']);
+    return $item;
+});
+
+DataManager::export('json', $data, 'file.json', function($item) {
+    unset($item['password']);
+    return $item;
+});
+</code></pre>
+        <h3>Example: Using a Transformer Class</h3>
+        <pre><code>use DataManager\Facades\DataManager;
+
+class MyTransformer {
+    public function transform($item) {
+        $item['email'] = strtolower($item['email']);
+        return $item;
+    }
+}
+
+DataManager::setTransformer(new MyTransformer());
+$rows = DataManager::import('json', 'file.json');
+</code></pre>
+
+        <hr class="divider"/>
+        <h2 id="validation">Validation</h2>
+        <div class="callout">
+            <strong>Advanced!</strong> You can validate each item during import using a callable or a class with a <code>validate($item)</code> method. Invalid items are skipped and collected in an <code>$errors</code> array.
+        </div>
+        <h3>Example: Using a Closure</h3>
+        <pre><code>use DataManager\Facades\DataManager;
+
+$errors = [];
+$rows = iterator_to_array(DataManager::import('csv', 'file.csv', null, function($item) {
+    return filter_var($item['email'], FILTER_VALIDATE_EMAIL);
+}, $errors));
+
+// $errors contains invalid rows
+</code></pre>
+        <h3>Example: Using a Validator Class</h3>
+        <pre><code>use DataManager\Facades\DataManager;
+
+class MyValidator {
+    public function validate($item) {
+        return !empty($item['name']) && is_numeric($item['age']);
+    }
+}
+
+$errors = [];
+DataManager::setValidator(new MyValidator());
+$rows = iterator_to_array(DataManager::import('json', 'file.json', null, null, $errors));
+</code></pre>
 
         <hr class="divider"/>
         <h2 id="utilities">Utilities</h2>

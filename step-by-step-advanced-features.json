@@ -1,0 +1,128 @@
+{
+  "steps": [
+    {
+      "step": 1,
+      "title": "Add custom transformers support",
+      "substeps": [
+        {"substep": "1.1", "description": "Define transformer registration API in DataManager", "estimate": "10m"},
+        {"substep": "1.2", "description": "Allow passing transformer to import/export methods", "estimate": "10m"},
+        {"substep": "1.3", "description": "Document transformer usage", "estimate": "5m"}
+      ]
+    },
+    {
+      "step": 2,
+      "title": "Add validation rules support",
+      "substeps": [
+        {"substep": "2.1", "description": "Define validation API and error reporting structure", "estimate": "10m"},
+        {"substep": "2.2", "description": "Integrate validation into import process", "estimate": "10m"},
+        {"substep": "2.3", "description": "Document validation usage", "estimate": "5m"}
+      ]
+    },
+    {
+      "step": 3,
+      "title": "Implement event hooks and observers",
+      "substeps": [
+        {"substep": "3.1", "description": "Add before/after import/export events", "estimate": "10m"},
+        {"substep": "3.2", "description": "Allow per-row and error events", "estimate": "10m"},
+        {"substep": "3.3", "description": "Document event usage", "estimate": "5m"}
+      ]
+    },
+    {
+      "step": 4,
+      "title": "Enhance batch and chunk processing",
+      "substeps": [
+        {"substep": "4.1", "description": "Refactor import/export to support chunked processing", "estimate": "15m"},
+        {"substep": "4.2", "description": "Add configuration for chunk size", "estimate": "5m"}
+      ]
+    },
+    {
+      "step": 5,
+      "title": "Add asynchronous/queued operations",
+      "substeps": [
+        {"substep": "5.1", "description": "Create Laravel job classes for import/export", "estimate": "10m"},
+        {"substep": "5.2", "description": "Integrate queue dispatching in DataManager", "estimate": "10m"},
+        {"substep": "5.3", "description": "Document queue usage", "estimate": "5m"}
+      ]
+    },
+    {
+      "step": 6,
+      "title": "Add progress reporting and notifications",
+      "substeps": [
+        {"substep": "6.1", "description": "Emit progress events during import/export", "estimate": "10m"},
+        {"substep": "6.2", "description": "Integrate notification channels (email, Slack)", "estimate": "15m"}
+      ]
+    },
+    {
+      "step": 7,
+      "title": "Implement import/export templates",
+      "substeps": [
+        {"substep": "7.1", "description": "Design template structure and storage", "estimate": "10m"},
+        {"substep": "7.2", "description": "Add template selection to import/export API", "estimate": "10m"}
+      ]
+    },
+    {
+      "step": 8,
+      "title": "Add web UI/CLI integration",
+      "substeps": [
+        {"substep": "8.1", "description": "Create basic web UI for job management", "estimate": "15m"},
+        {"substep": "8.2", "description": "Add CLI commands for import/export", "estimate": "10m"}
+      ]
+    },
+    {
+      "step": 9,
+      "title": "Implement multi-format auto-detection",
+      "substeps": [
+        {"substep": "9.1", "description": "Add file extension/content detection logic", "estimate": "10m"},
+        {"substep": "9.2", "description": "Integrate auto-detection into facade API", "estimate": "10m"}
+      ]
+    },
+    {
+      "step": 10,
+      "title": "Support external storage integration",
+      "substeps": [
+        {"substep": "10.1", "description": "Add S3/FTP/Google Drive adapters", "estimate": "15m"},
+        {"substep": "10.2", "description": "Allow import/export from/to external sources", "estimate": "10m"}
+      ]
+    },
+    {
+      "step": 11,
+      "title": "Add audit logging",
+      "substeps": [
+        {"substep": "11.1", "description": "Log all import/export operations with metadata", "estimate": "10m"},
+        {"substep": "11.2", "description": "Provide log viewing API/UI", "estimate": "10m"}
+      ]
+    },
+    {
+      "step": 12,
+      "title": "Implement error recovery and resume",
+      "substeps": [
+        {"substep": "12.1", "description": "Track progress and failure points", "estimate": "10m"},
+        {"substep": "12.2", "description": "Allow resuming from last successful operation", "estimate": "10m"}
+      ]
+    },
+    {
+      "step": 13,
+      "title": "Add data preview feature",
+      "substeps": [
+        {"substep": "13.1", "description": "Implement preview API for sample data", "estimate": "10m"},
+        {"substep": "13.2", "description": "Show validation/transformation results in preview", "estimate": "10m"}
+      ]
+    },
+    {
+      "step": 14,
+      "title": "Implement role-based access control",
+      "substeps": [
+        {"substep": "14.1", "description": "Integrate with Laravel policies/gates", "estimate": "10m"},
+        {"substep": "14.2", "description": "Restrict import/export by user role", "estimate": "10m"}
+      ]
+    },
+    {
+      "step": 15,
+      "title": "Support custom file parsers",
+      "substeps": [
+        {"substep": "15.1", "description": "Allow registration of custom parser classes", "estimate": "10m"},
+        {"substep": "15.2", "description": "Integrate custom parsers into import/export flow", "estimate": "10m"}
+      ]
+    }
+  ]
+} 
