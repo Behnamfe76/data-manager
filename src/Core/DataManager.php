@@ -20,6 +20,7 @@ use DataManager\Utils\EventDispatcher;
 use DataManager\Jobs\ImportJob;
 use DataManager\Jobs\ExportJob;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Gate;
 
 class DataManager
 {
@@ -208,6 +209,20 @@ class DataManager
     }
 
     /**
+     * Check access for an action (import/export) and type.
+     *
+     * @param string $action
+     * @param string $type
+     * @throws \Illuminate\Auth\Access\AuthorizationException
+     */
+    protected function checkAccess($action, $type)
+    {
+        if (function_exists('auth') && auth()->check()) {
+            Gate::authorize('data-manager.' . $action, $type);
+        }
+    }
+
+    /**
      * Import data with optional checkpoint for resume.
      *
      * @param string $type
@@ -221,6 +236,7 @@ class DataManager
      */
     public function import(string $type, $source, $transformer = null, $validator = null, array &$errors = [], int $chunkSize = null, string $checkpoint = null)
     {
+        $this->checkAccess('import', $type);
         $status = 'success';
         $resumeIndex = $checkpoint ? $this->readCheckpoint($checkpoint) : 0;
         $currentIndex = 0;
@@ -338,6 +354,7 @@ class DataManager
      */
     public function export(string $type, iterable $data, $target, $transformer = null, int $chunkSize = null, string $checkpoint = null)
     {
+        $this->checkAccess('export', $type);
         $status = 'success';
         $resumeIndex = $checkpoint ? $this->readCheckpoint($checkpoint) : 0;
         $currentIndex = 0;

@@ -157,6 +157,7 @@
             <li><a href="#audit">Audit Logging</a></li>
             <li><a href="#resume">Error Recovery & Resume</a></li>
             <li><a href="#preview">Data Preview</a></li>
+            <li><a href="#rbac">Role-based Access Control</a></li>
         </ul>
     </nav>
     <div class="main-content">
@@ -484,6 +485,23 @@ $sample = DataManager::preview('csv', 'file.csv', 3, function($item) {
 </code></pre>
         <div style="color:#888; font-size:0.95em; margin-top:1em;">
             <b>Note:</b> You can use preview for validation/testing before running a full import/export.
+        </div>
+
+        <hr class="divider"/>
+        <h2 id="rbac">Role-based Access Control</h2>
+        <div class="callout">
+            <strong>Advanced!</strong> Restrict import/export operations by user role using Laravel policies/gates. DataManager checks <code>data-manager.import</code> and <code>data-manager.export</code> abilities.
+        </div>
+        <h3>Example: Gate Definition</h3>
+        <pre><code>Gate::define('data-manager.import', function ($user, $type) {
+    return $user->isAdmin(); // or any custom logic
+});
+Gate::define('data-manager.export', function ($user, $type) {
+    return $user->hasPermission('export-' . $type);
+});
+</code></pre>
+        <div style="color:#888; font-size:0.95em; margin-top:1em;">
+            <b>Note:</b> If the user is not authorized, a 403 error will be thrown.
         </div>
 
         <hr class="divider"/>
