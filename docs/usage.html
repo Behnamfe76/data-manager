@@ -141,6 +141,7 @@
             <li><a href="#formats">Formats & Examples</a></li>
             <li><a href="#transformers">Custom Transformers</a></li>
             <li><a href="#validation">Validation</a></li>
+            <li><a href="#events">Event Hooks</a></li>
             <li><a href="#utilities">Utilities</a></li>
             <li><a href="#extending">Extending</a></li>
             <li><a href="#config-options">Config Options</a></li>
@@ -250,6 +251,45 @@ class MyValidator {
 $errors = [];
 DataManager::setValidator(new MyValidator());
 $rows = iterator_to_array(DataManager::import('json', 'file.json', null, null, $errors));
+</code></pre>
+
+        <hr class="divider"/>
+        <h2 id="events">Event Hooks</h2>
+        <div class="callout">
+            <strong>Advanced!</strong> Listen for import/export lifecycle events: <code>import.before</code>, <code>import.after</code>, <code>import.row</code>, <code>import.error</code>, <code>export.before</code>, <code>export.after</code>, <code>export.row</code>, <code>export.error</code>.
+        </div>
+        <h3>Example: Listening for Events</h3>
+        <pre><code>use DataManager\Utils\EventDispatcher;
+
+EventDispatcher::listen('import.before', function($type, $source) {
+    // Log or handle before import
+});
+
+EventDispatcher::listen('import.row', function($item) {
+    // Handle each imported row
+});
+
+EventDispatcher::listen('import.error', function($row) {
+    // Handle validation error
+});
+
+EventDispatcher::listen('import.after', function($type, $source) {
+    // After import
+});
+</code></pre>
+        <h3>Example: Export Events</h3>
+        <pre><code>EventDispatcher::listen('export.before', function($type, $target) {
+    // Before export
+});
+EventDispatcher::listen('export.row', function($item) {
+    // Each exported row
+});
+EventDispatcher::listen('export.error', function($exception) {
+    // Handle export error
+});
+EventDispatcher::listen('export.after', function($type, $target) {
+    // After export
+});
 </code></pre>
 
         <hr class="divider"/>

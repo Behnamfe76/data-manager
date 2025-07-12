@@ -16,6 +16,7 @@ use DataManager\Imports\ModelImporter;
 use DataManager\Exports\ModelExporter;
 use DataManager\Imports\SpatieDataImporter;
 use DataManager\Exports\SpatieDataExporter;
+use DataManager\Utils\EventDispatcher;
 
 class DataManager
 {
@@ -47,7 +48,9 @@ class DataManager
     }
 
     /**
-     * Import data with optional transformer and validator.
+     * Import data with optional transformer and validator, with event hooks.
+     *
+     * Events: 'import.before', 'import.after', 'import.row', 'import.error'
      *
      * @param string $type
      * @param mixed $source
@@ -58,6 +61,7 @@ class DataManager
      */
     public function import(string $type, $source, $transformer = null, $validator = null, array &$errors = [])
     {
+        EventDispatcher::dispatch('import.before', $type, $source);
         $result = null;
         switch (strtolower($type)) {
             case 'csv':
@@ -94,15 +98,20 @@ class DataManager
             if ($validator) {
                 if (!self::applyValidator($validator, $item)) {
                     $errors[] = $original;
+                    EventDispatcher::dispatch('import.error', $original);
                     continue;
                 }
             }
+            EventDispatcher::dispatch('import.row', $item);
             yield $item;
         }
+        EventDispatcher::dispatch('import.after', $type, $source);
     }
 
     /**
-     * Export data with optional transformer.
+     * Export data with optional transformer and event hooks.
+     *
+     * Events: 'export.before', 'export.after', 'export.row', 'export.error'
      *
      * @param string $type
      * @param iterable $data
@@ -112,30 +121,44 @@ class DataManager
      */
     public function export(string $type, iterable $data, $target, $transformer = null)
     {
+        EventDispatcher::dispatch('export.before', $type, $target);
         $transformer = $transformer ?: $this->transformer;
         if ($transformer) {
             $data = array_map(function ($item) use ($transformer) {
-                return self::applyTransformer($transformer, $item);
+                $item = self::applyTransformer($transformer, $item);
+                EventDispatcher::dispatch('export.row', $item);
+                return $item;
             }, is_array($data) ? $data : iterator_to_array($data));
+        } else {
+            $data = is_array($data) ? $data : iterator_to_array($data);
+            foreach ($data as $item) {
+                EventDispatcher::dispatch('export.row', $item);
+            }
         }
-        switch (strtolower($type)) {
-            case 'csv':
-                return (new CsvExporter())->export($data, $target);
-            case 'json':
-                return (new JsonExporter())->export($data, $target);
-            case 'xml':
-                return (new XmlExporter())->export($data, $target);
-            case 'sql':
-                return (new SqlExporter())->export($data, $target);
-            case 'excel':
-                return (new ExcelExporter())->export($data, $target);
-            case 'model':
-                return (new ModelExporter())->export($data, $target);
-            case 'spatie':
-                return (new SpatieDataExporter())->export($data, $target);
-            default:
-                throw new \InvalidArgumentException("Unsupported export type: $type");
+        try {
+            switch (strtolower($type)) {
+                case 'csv':
+                    (new CsvExporter())->export($data, $target); break;
+                case 'json':
+                    (new JsonExporter())->export($data, $target); break;
+                case 'xml':
+                    (new XmlExporter())->export($data, $target); break;
+                case 'sql':
+                    (new SqlExporter())->export($data, $target); break;
+                case 'excel':
+                    (new ExcelExporter())->export($data, $target); break;
+                case 'model':
+                    (new ModelExporter())->export($data, $target); break;
+                case 'spatie':
+                    (new SpatieDataExporter())->export($data, $target); break;
+                default:
+                    throw new \InvalidArgumentException("Unsupported export type: $type");
+            }
+        } catch (\Throwable $e) {
+            EventDispatcher::dispatch('export.error', $e);
+            throw $e;
         }
+        EventDispatcher::dispatch('export.after', $type, $target);
     }
 
     /**
