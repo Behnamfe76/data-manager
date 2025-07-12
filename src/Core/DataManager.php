@@ -182,7 +182,33 @@ class DataManager
     }
 
     /**
-     * Import data with auto-detection of format if type is 'auto'.
+     * Read checkpoint index from file.
+     *
+     * @param string $checkpoint
+     * @return int
+     */
+    protected function readCheckpoint($checkpoint)
+    {
+        if (is_file($checkpoint)) {
+            return (int)file_get_contents($checkpoint);
+        }
+        return 0;
+    }
+
+    /**
+     * Write checkpoint index to file.
+     *
+     * @param string $checkpoint
+     * @param int $index
+     * @return void
+     */
+    protected function writeCheckpoint($checkpoint, $index)
+    {
+        file_put_contents($checkpoint, $index);
+    }
+
+    /**
+     * Import data with optional checkpoint for resume.
      *
      * @param string $type
      * @param mixed $source
@@ -190,11 +216,14 @@ class DataManager
      * @param callable|object|null $validator
      * @param array $errors (by reference)
      * @param int|null $chunkSize
+     * @param string|null $checkpoint
      * @return iterable|array[]
      */
-    public function import(string $type, $source, $transformer = null, $validator = null, array &$errors = [], int $chunkSize = null)
+    public function import(string $type, $source, $transformer = null, $validator = null, array &$errors = [], int $chunkSize = null, string $checkpoint = null)
     {
         $status = 'success';
+        $resumeIndex = $checkpoint ? $this->readCheckpoint($checkpoint) : 0;
+        $currentIndex = 0;
         try {
             if ($type === 'auto') {
                 $detected = $this->detectFormat($source);
@@ -203,7 +232,6 @@ class DataManager
                 }
                 $type = $detected;
             }
-            // If source is a disk path, fetch to temp file and use that
             if (is_string($source) && preg_match('/^([a-z0-9_]+):\/\//i', $source)) {
                 $tmp = tempnam(sys_get_temp_dir(), 'dm_');
                 file_put_contents($tmp, $this->readFile($source));
@@ -247,6 +275,7 @@ class DataManager
                 $total = count(file($source));
             }
             foreach ($result as $item) {
+                if ($currentIndex++ < $resumeIndex) continue;
                 $original = $item;
                 if ($transformer) {
                     $item = self::applyTransformer($transformer, $item);
@@ -263,6 +292,9 @@ class DataManager
                 if ($total) {
                     $percent = ($count / $total) * 100;
                     EventDispatcher::dispatch('import.progress', $count, $total, $percent);
+                }
+                if ($checkpoint) {
+                    $this->writeCheckpoint($checkpoint, $currentIndex);
                 }
                 if ($chunkSize) {
                     $buffer[] = $item;
@@ -288,23 +320,27 @@ class DataManager
                 'chunkSize' => $chunkSize,
                 'status' => $status,
                 'errorCount' => count($errors ?? []),
+                'checkpoint' => $checkpoint,
             ]);
         }
     }
 
     /**
-     * Export data with auto-detection of format if type is 'auto'.
+     * Export data with optional checkpoint for resume.
      *
      * @param string $type
      * @param iterable $data
      * @param mixed $target
      * @param callable|object|null $transformer
      * @param int|null $chunkSize
+     * @param string|null $checkpoint
      * @return void
      */
-    public function export(string $type, iterable $data, $target, $transformer = null, int $chunkSize = null)
+    public function export(string $type, iterable $data, $target, $transformer = null, int $chunkSize = null, string $checkpoint = null)
     {
         $status = 'success';
+        $resumeIndex = $checkpoint ? $this->readCheckpoint($checkpoint) : 0;
+        $currentIndex = 0;
         try {
             if ($type === 'auto') {
                 $detected = $this->detectFormat($target);
@@ -313,7 +349,6 @@ class DataManager
                 }
                 $type = $detected;
             }
-            // If target is a disk path, write to temp file and upload after
             $toDisk = null;
             if (is_string($target) && preg_match('/^([a-z0-9_]+):\/\//i', $target)) {
                 $toDisk = $target;
@@ -330,6 +365,7 @@ class DataManager
             }
             $count = 0;
             foreach ($chunks as $chunk) {
+                if ($currentIndex++ < $resumeIndex) continue;
                 if ($transformer) {
                     $chunk = array_map(function ($item) use ($transformer) {
                         $item = self::applyTransformer($transformer, $item);
@@ -345,6 +381,9 @@ class DataManager
                 if ($total) {
                     $percent = ($count / $total) * 100;
                     EventDispatcher::dispatch('export.progress', $count, $total, $percent);
+                }
+                if ($checkpoint) {
+                    $this->writeCheckpoint($checkpoint, $currentIndex);
                 }
                 try {
                     switch (strtolower($type)) {
@@ -384,8 +423,30 @@ class DataManager
                 'target' => $target,
                 'chunkSize' => $chunkSize,
                 'status' => $status,
+                'checkpoint' => $checkpoint,
             ]);
         }
+    }
+
+    /**
+     * Preview a sample of the data with validation and transformation applied.
+     *
+     * @param string $type
+     * @param mixed $source
+     * @param int $limit
+     * @param callable|object|null $transformer
+     * @param callable|object|null $validator
+     * @return array
+     */
+    public function preview(string $type, $source, int $limit = 5, $transformer = null, $validator = null): array
+    {
+        $result = [];
+        $errors = [];
+        foreach ($this->import($type, $source, $transformer, $validator, $errors) as $item) {
+            $result[] = $item;
+            if (count($result) >= $limit) break;
+        }
+        return $result;
     }
 
     /**

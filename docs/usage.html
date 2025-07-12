@@ -155,6 +155,8 @@
             <li><a href="#autodetect">Multi-format Auto-detection</a></li>
             <li><a href="#external">External Storage Integration</a></li>
             <li><a href="#audit">Audit Logging</a></li>
+            <li><a href="#resume">Error Recovery & Resume</a></li>
+            <li><a href="#preview">Data Preview</a></li>
         </ul>
     </nav>
     <div class="main-content">
@@ -436,6 +438,52 @@ DataManager::export('auto', $data, 's3://bucket/output.json');
 </code></pre>
         <div style="color:#888; font-size:0.95em; margin-top:1em;">
             <b>Note:</b> You can parse this log for auditing, monitoring, or analytics.
+        </div>
+
+        <hr class="divider"/>
+        <h2 id="resume">Error Recovery & Resume</h2>
+        <div class="callout">
+            <strong>Advanced!</strong> Use the <code>checkpoint</code> parameter to resume interrupted imports/exports from the last successful chunk or row.
+        </div>
+        <h3>Example: Import with Resume</h3>
+        <pre><code>use DataManager\Facades\DataManager;
+
+// First run (or after failure):
+$checkpoint = storage_path('data-manager-import.chk');
+foreach (DataManager::import('csv', 'file.csv', null, null, $errors, 100, $checkpoint) as $chunk) {
+    // ...
+}
+// If interrupted, rerun with the same checkpoint file to resume.
+</code></pre>
+        <h3>Example: Export with Resume</h3>
+        <pre><code>use DataManager\Facades\DataManager;
+
+$checkpoint = storage_path('data-manager-export.chk');
+DataManager::export('json', $data, 'output.json', null, 100, $checkpoint);
+</code></pre>
+        <div style="color:#888; font-size:0.95em; margin-top:1em;">
+            <b>Note:</b> The checkpoint file stores the last processed index. Delete it to start over.
+        </div>
+
+        <hr class="divider"/>
+        <h2 id="preview">Data Preview</h2>
+        <div class="callout">
+            <strong>Advanced!</strong> Use <code>DataManager::preview</code> to get a sample of the data with validation and transformation applied before running a full import/export.
+        </div>
+        <h3>Example: Preview Data</h3>
+        <pre><code>use DataManager\Facades\DataManager;
+
+$sample = DataManager::preview('csv', 'file.csv', 3, function($item) {
+    $item['name'] = strtoupper($item['name']);
+    return $item;
+}, function($item) {
+    return !empty($item['email']);
+});
+
+// $sample contains up to 3 valid, transformed rows
+</code></pre>
+        <div style="color:#888; font-size:0.95em; margin-top:1em;">
+            <b>Note:</b> You can use preview for validation/testing before running a full import/export.
         </div>
 
         <hr class="divider"/>
