@@ -27,6 +27,8 @@
             position: sticky;
             top: 0;
             height: 100vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
         .sidebar h2 {
             color: #fff;
@@ -125,7 +127,7 @@
         }
         @media (max-width: 900px) {
             #app { flex-direction: column; }
-            .sidebar { width: 100%; height: auto; position: static; padding: 1em; }
+            .sidebar { width: 100%; height: auto; position: static; padding: 1em; overflow-y: visible; }
             .main-content { margin: 1em; padding: 1em; }
         }
     </style>
