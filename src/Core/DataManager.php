@@ -27,6 +27,7 @@ class DataManager
     protected $transformer = null;
     protected $validator = null;
     protected $templates = [];
+    protected $customParsers = [];
 
     /**
      * Register a custom transformer (callable or DataTransformerInterface).
@@ -62,6 +63,19 @@ class DataManager
     public function registerTemplate(string $name, array $config)
     {
         $this->templates[$name] = $config;
+        return $this;
+    }
+
+    /**
+     * Register a custom parser for a given type.
+     *
+     * @param string $type
+     * @param object $parser (must implement import/export methods)
+     * @return $this
+     */
+    public function registerParser(string $type, $parser)
+    {
+        $this->customParsers[strtolower($type)] = $parser;
         return $this;
     }
 
@@ -237,6 +251,9 @@ class DataManager
     public function import(string $type, $source, $transformer = null, $validator = null, array &$errors = [], int $chunkSize = null, string $checkpoint = null)
     {
         $this->checkAccess('import', $type);
+        if (isset($this->customParsers[strtolower($type)])) {
+            return $this->customParsers[strtolower($type)]->import($source);
+        }
         $status = 'success';
         $resumeIndex = $checkpoint ? $this->readCheckpoint($checkpoint) : 0;
         $currentIndex = 0;
@@ -355,6 +372,9 @@ class DataManager
     public function export(string $type, iterable $data, $target, $transformer = null, int $chunkSize = null, string $checkpoint = null)
     {
         $this->checkAccess('export', $type);
+        if (isset($this->customParsers[strtolower($type)])) {
+            return $this->customParsers[strtolower($type)]->export($data, $target);
+        }
         $status = 'success';
         $resumeIndex = $checkpoint ? $this->readCheckpoint($checkpoint) : 0;
         $currentIndex = 0;

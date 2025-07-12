@@ -158,6 +158,7 @@
             <li><a href="#resume">Error Recovery & Resume</a></li>
             <li><a href="#preview">Data Preview</a></li>
             <li><a href="#rbac">Role-based Access Control</a></li>
+            <li><a href="#customparsers">Custom File Parsers</a></li>
         </ul>
     </nav>
     <div class="main-content">
@@ -502,6 +503,31 @@ Gate::define('data-manager.export', function ($user, $type) {
 </code></pre>
         <div style="color:#888; font-size:0.95em; margin-top:1em;">
             <b>Note:</b> If the user is not authorized, a 403 error will be thrown.
+        </div>
+
+        <hr class="divider"/>
+        <h2 id="customparsers">Custom File Parsers</h2>
+        <div class="callout">
+            <strong>Advanced!</strong> Register your own parser class for a new or proprietary file type. DataManager will use it for import/export if the type matches.
+        </div>
+        <h3>Example: Register a Custom Parser</h3>
+        <pre><code>class MyCustomParser {
+    public function import($source) {
+        // Custom import logic
+    }
+    public function export($data, $target) {
+        // Custom export logic
+    }
+}
+
+use DataManager\Facades\DataManager;
+
+DataManager::registerParser('mytype', new MyCustomParser());
+$rows = DataManager::import('mytype', 'file.mytype');
+DataManager::export('mytype', $data, 'output.mytype');
+</code></pre>
+        <div style="color:#888; font-size:0.95em; margin-top:1em;">
+            <b>Note:</b> Your parser class must implement <code>import($source)</code> and <code>export($data, $target)</code> methods.
         </div>
 
         <hr class="divider"/>
