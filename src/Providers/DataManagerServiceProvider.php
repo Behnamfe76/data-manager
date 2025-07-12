@@ -16,10 +16,10 @@ class DataManagerServiceProvider extends ServiceProvider
             __DIR__ . '/../../config/data-manager.php', 'data-manager'
         );
 
-        // Bind main DataManager service (placeholder)
-        // $this->app->singleton('data-manager', function ($app) {
-        //     return new \DataManager\Core\DataManager();
-        // });
+        // Bind main DataManager service
+        $this->app->singleton('data-manager', function ($app) {
+            return new \DataManager\Core\DataManager();
+        });
     }
 
     /**

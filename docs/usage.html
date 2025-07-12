@@ -170,6 +170,11 @@
 
         <hr class="divider"/>
         <h2 id="formats">Supported Formats & Examples</h2>
+        <div class="callout">
+            <strong>New!</strong> You can now use the <code>DataManager</code> facade for all import/export operations:
+            <br>
+            <code>DataManager::import('csv', 'file.csv')</code> or <code>DataManager::export('json', $data, 'file.json')</code>
+        </div>
         <div v-for="(example, idx) in codeExamples" :key="idx" class="collapsible">
             <div class="collapsible-header" @click="toggle(idx)">
                 <span>{{ example.title }}</span>
@@ -177,6 +182,8 @@
                 <span v-else>&#9660;</span>
             </div>
             <div v-if="openIndex === idx" class="collapsible-content">
+                <pre><code>{{ example.facade }}</code></pre>
+                <div style="margin-top:1em; color:#aaa; font-size:0.95em;">Legacy (direct class) usage:</div>
                 <pre><code>{{ example.code }}</code></pre>
             </div>
         </div>
@@ -236,30 +243,37 @@ createApp({
             codeExamples: [
                 {
                     title: 'CSV',
+                    facade: `use DataManager\\Facades\\DataManager;\n$rows = DataManager::import('csv', 'file.csv');\nDataManager::export('csv', $data, 'file.csv');`,
                     code: `// Import\nuse DataManager\\Imports\\CsvImporter;\n$importer = new CsvImporter();\nforeach ($importer->import('file.csv') as $row) {\n    // ...\n}\n\n// Export\nuse DataManager\\Exports\\CsvExporter;\n$exporter = new CsvExporter();\n$exporter->export($data, 'file.csv');`
                 },
                 {
                     title: 'JSON',
+                    facade: `use DataManager\\Facades\\DataManager;\n$rows = DataManager::import('json', 'file.json');\nDataManager::export('json', $data, 'file.json');`,
                     code: `// Import\nuse DataManager\\Imports\\JsonImporter;\n$importer = new JsonImporter();\nforeach ($importer->import('file.json') as $row) {\n    // ...\n}\n\n// Export\nuse DataManager\\Exports\\JsonExporter;\n$exporter = new JsonExporter();\n$exporter->export($data, 'file.json');`
                 },
                 {
                     title: 'XML',
+                    facade: `use DataManager\\Facades\\DataManager;\n$rows = DataManager::import('xml', 'file.xml');\nDataManager::export('xml', $data, 'file.xml');`,
                     code: `// Import\nuse DataManager\\Imports\\XmlImporter;\n$importer = new XmlImporter();\nforeach ($importer->import('file.xml') as $row) {\n    // ...\n}\n\n// Export\nuse DataManager\\Exports\\XmlExporter;\n$exporter = new XmlExporter();\n$exporter->export($data, 'file.xml');`
                 },
                 {
                     title: 'SQL',
+                    facade: `use DataManager\\Facades\\DataManager;\n$stmts = DataManager::import('sql', 'file.sql');\nDataManager::export('sql', $statements, 'file.sql');`,
                     code: `// Import\nuse DataManager\\Imports\\SqlImporter;\n$importer = new SqlImporter();\nforeach ($importer->import('file.sql') as $statement) {\n    // Execute $statement\n}\n\n// Export\nuse DataManager\\Exports\\SqlExporter;\n$exporter = new SqlExporter();\n$exporter->export($statements, 'file.sql');`
                 },
                 {
                     title: 'Excel (maatwebsite/excel)',
+                    facade: `use DataManager\\Facades\\DataManager;\n$rows = DataManager::import('excel', 'file.xlsx');\nDataManager::export('excel', $data, 'file.xlsx');`,
                     code: `// Import\nuse DataManager\\Imports\\ExcelImporter;\n$importer = new ExcelImporter();\nforeach ($importer->import('file.xlsx') as $row) {\n    // ...\n}\n\n// Export\nuse DataManager\\Exports\\ExcelExporter;\n$exporter = new ExcelExporter();\n$exporter->export($data, 'file.xlsx');`
                 },
                 {
                     title: 'Database Model',
+                    facade: `use DataManager\\Facades\\DataManager;\n$models = DataManager::import('model', [User::class, $data]);\nDataManager::export('model', User::all(), null);`,
                     code: `// Import\nuse DataManager\\Imports\\ModelImporter;\n$importer = new ModelImporter();\nforeach ($importer->import([User::class, $data]) as $model) {\n    // $model is a saved Eloquent model\n}\n\n// Export\nuse DataManager\\Exports\\ModelExporter;\n$exporter = new ModelExporter();\n$exporter->export(User::all(), null); // Exports all users as arrays`
                 },
                 {
                     title: 'Spatie Data Object',
+                    facade: `use DataManager\\Facades\\DataManager;\n$rows = DataManager::import('spatie', $spatieDataObjects);\nDataManager::export('spatie', $data, SpatieDataClass::class);`,
                     code: `// Import\nuse DataManager\\Imports\\SpatieDataImporter;\n$importer = new SpatieDataImporter();\nforeach ($importer->import($spatieDataObjects) as $row) {\n    // ...\n}\n\n// Export\nuse DataManager\\Exports\\SpatieDataExporter;\n$exporter = new SpatieDataExporter();\n$exporter->export($data, SpatieDataClass::class);`
                 }
             ]
