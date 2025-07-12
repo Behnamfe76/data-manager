@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataManager Usage Instructions</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            margin: 0;
+            background: #f8fafc;
+            color: #222;
+        }
+        #app {
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 250px;
+            background: #1a73e8;
+            color: #fff;
+            padding: 2em 1em 2em 2em;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+        }
+        .sidebar h2 {
+            color: #fff;
+            font-size: 1.3em;
+            margin-top: 0;
+        }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+        }
+        .sidebar li {
+            margin: 1em 0;
+        }
+        .sidebar a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .sidebar a:hover {
+            color: #ffd600;
+        }
+        .main-content {
+            flex: 1;
+            max-width: 900px;
+            margin: 2em auto;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(44,62,80,0.07);
+            padding: 2.5em 2em 2em 2em;
+        }
+        h1 {
+            color: #1a73e8;
+            margin-top: 0;
+            font-size: 2.5em;
+            letter-spacing: -1px;
+        }
+        h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #e3e8ee;
+            padding-bottom: 0.2em;
+            margin-top: 2em;
+        }
+        h3 {
+            color: #1a73e8;
+            margin-top: 1.5em;
+        }
+        .collapsible {
+            border: 1px solid #e3e8ee;
+            border-radius: 8px;
+            margin: 1.2em 0;
+            background: #f4f4f4;
+        }
+        .collapsible-header {
+            cursor: pointer;
+            padding: 1em 1.5em;
+            font-weight: bold;
+            color: #1a73e8;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .collapsible-content {
+            padding: 1em 1.5em;
+            border-top: 1px solid #e3e8ee;
+            background: #23272e;
+            color: #f8f8f2;
+            font-family: 'Fira Mono', 'Consolas', 'Menlo', monospace;
+            font-size: 1em;
+            overflow-x: auto;
+        }
+        .callout {
+            background: #e8f0fe;
+            border-left: 5px solid #1a73e8;
+            padding: 1em 1.5em;
+            margin: 1.5em 0;
+            border-radius: 6px;
+        }
+        .footer {
+            text-align: center;
+            color: #888;
+            margin-top: 3em;
+            font-size: 0.95em;
+        }
+        .divider {
+            border: none;
+            border-top: 1px solid #e3e8ee;
+            margin: 2.5em 0 2em 0;
+        }
+        a {
+            color: #1a73e8;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        @media (max-width: 900px) {
+            #app { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; position: static; padding: 1em; }
+            .main-content { margin: 1em; padding: 1em; }
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <nav class="sidebar">
+        <h2>DataManager Docs</h2>
+        <ul>
+            <li><a href="#installation">Installation</a></li>
+            <li><a href="#configuration">Configuration</a></li>
+            <li><a href="#core-features">Core Features</a></li>
+            <li><a href="#formats">Formats & Examples</a></li>
+            <li><a href="#utilities">Utilities</a></li>
+            <li><a href="#extending">Extending</a></li>
+            <li><a href="#config-options">Config Options</a></li>
+            <li><a href="#license">License</a></li>
+        </ul>
+    </nav>
+    <div class="main-content">
+        <h1>DataManager Usage Instructions</h1>
+        <h2 id="installation">Installation</h2>
+        <pre><code>composer require fereydooni/data-manager</code></pre>
+
+        <h2 id="configuration">Configuration</h2>
+        <p>If using Laravel, publish the config file:</p>
+        <pre><code>php artisan vendor:publish --provider="DataManager\Providers\DataManagerServiceProvider" --tag=config</code></pre>
+        <div class="callout">
+            <strong>Tip:</strong> You can customize default format, chunk size, logging, and error handling in <code>config/data-manager.php</code>.
+        </div>
+
+        <h2 id="core-features">Core Features</h2>
+        <ul>
+            <li>Import and export data in multiple formats: CSV, JSON, XML, SQL, Excel, database models, Spatie Data objects</li>
+            <li>Custom importers/exporters via interfaces</li>
+            <li>Data validation and transformation hooks</li>
+            <li>Batch processing for large datasets</li>
+            <li>Logging, error handling, and progress tracking utilities</li>
+            <li>Event hooks for import/export lifecycle</li>
+            <li>Extensible and configurable</li>
+        </ul>
+
+        <hr class="divider"/>
+        <h2 id="formats">Supported Formats & Examples</h2>
+        <div v-for="(example, idx) in codeExamples" :key="idx" class="collapsible">
+            <div class="collapsible-header" @click="toggle(idx)">
+                <span>{{ example.title }}</span>
+                <span v-if="openIndex === idx">&#9650;</span>
+                <span v-else>&#9660;</span>
+            </div>
+            <div v-if="openIndex === idx" class="collapsible-content">
+                <pre><code>{{ example.code }}</code></pre>
+            </div>
+        </div>
+
+        <hr class="divider"/>
+        <h2 id="utilities">Utilities</h2>
+        <ul>
+            <li><b>Logger:</b> <code>DataManager\Utils\Logger::log('message');</code></li>
+            <li><b>Exception:</b> <code>throw new DataManager\Exceptions\DataManagerException('error');</code></li>
+            <li><b>Progress Tracker:</b>
+                <pre><code>$tracker = new DataManager\Utils\ProgressTracker($total);
+foreach ($items as $item) {
+    // ...
+    $tracker->advance();
+}
+$tracker->finish();
+</code></pre>
+            </li>
+        </ul>
+
+        <hr class="divider"/>
+        <h2 id="extending">Extending</h2>
+        <ul>
+            <li>Implement <code>ImporterInterface</code> or <code>ExporterInterface</code> for custom formats.</li>
+            <li>Use <code>DataManager\Utils\EventDispatcher</code> for event hooks:</li>
+        </ul>
+        <pre><code>use DataManager\Utils\EventDispatcher;
+EventDispatcher::listen('import.started', function ($source) {
+    // ...
+});
+EventDispatcher::dispatch('import.started', $source);
+</code></pre>
+
+        <hr class="divider"/>
+        <h2 id="config-options">Configuration Options</h2>
+        <ul>
+            <li><b>default_format</b>: Default format for import/export (e.g., csv)</li>
+            <li><b>chunk_size</b>: Batch size for processing</li>
+            <li><b>logging</b>: Enable/disable logging</li>
+            <li><b>error_handling</b>: Log errors, throw exceptions, etc.</li>
+        </ul>
+
+        <hr class="divider"/>
+        <h2 id="license">License</h2>
+        <p>MIT &mdash; <a href="https://github.com/fereydooni/data-manager" target="_blank">View on GitHub</a></p>
+        <div class="footer">
+            &copy; 2024 DataManager by fereydooni. All rights reserved.
+        </div>
+    </div>
+</div>
+<script>
+const { createApp } = Vue;
+createApp({
+    data() {
+        return {
+            openIndex: 0,
+            codeExamples: [
+                {
+                    title: 'CSV',
+                    code: `// Import\nuse DataManager\\Imports\\CsvImporter;\n$importer = new CsvImporter();\nforeach ($importer->import('file.csv') as $row) {\n    // ...\n}\n\n// Export\nuse DataManager\\Exports\\CsvExporter;\n$exporter = new CsvExporter();\n$exporter->export($data, 'file.csv');`
+                },
+                {
+                    title: 'JSON',
+                    code: `// Import\nuse DataManager\\Imports\\JsonImporter;\n$importer = new JsonImporter();\nforeach ($importer->import('file.json') as $row) {\n    // ...\n}\n\n// Export\nuse DataManager\\Exports\\JsonExporter;\n$exporter = new JsonExporter();\n$exporter->export($data, 'file.json');`
+                },
+                {
+                    title: 'XML',
+                    code: `// Import\nuse DataManager\\Imports\\XmlImporter;\n$importer = new XmlImporter();\nforeach ($importer->import('file.xml') as $row) {\n    // ...\n}\n\n// Export\nuse DataManager\\Exports\\XmlExporter;\n$exporter = new XmlExporter();\n$exporter->export($data, 'file.xml');`
+                },
+                {
+                    title: 'SQL',
+                    code: `// Import\nuse DataManager\\Imports\\SqlImporter;\n$importer = new SqlImporter();\nforeach ($importer->import('file.sql') as $statement) {\n    // Execute $statement\n}\n\n// Export\nuse DataManager\\Exports\\SqlExporter;\n$exporter = new SqlExporter();\n$exporter->export($statements, 'file.sql');`
+                },
+                {
+                    title: 'Excel (maatwebsite/excel)',
+                    code: `// Import\nuse DataManager\\Imports\\ExcelImporter;\n$importer = new ExcelImporter();\nforeach ($importer->import('file.xlsx') as $row) {\n    // ...\n}\n\n// Export\nuse DataManager\\Exports\\ExcelExporter;\n$exporter = new ExcelExporter();\n$exporter->export($data, 'file.xlsx');`
+                },
+                {
+                    title: 'Database Model',
+                    code: `// Import\nuse DataManager\\Imports\\ModelImporter;\n$importer = new ModelImporter();\nforeach ($importer->import([User::class, $data]) as $model) {\n    // $model is a saved Eloquent model\n}\n\n// Export\nuse DataManager\\Exports\\ModelExporter;\n$exporter = new ModelExporter();\n$exporter->export(User::all(), null); // Exports all users as arrays`
+                },
+                {
+                    title: 'Spatie Data Object',
+                    code: `// Import\nuse DataManager\\Imports\\SpatieDataImporter;\n$importer = new SpatieDataImporter();\nforeach ($importer->import($spatieDataObjects) as $row) {\n    // ...\n}\n\n// Export\nuse DataManager\\Exports\\SpatieDataExporter;\n$exporter = new SpatieDataExporter();\n$exporter->export($data, SpatieDataClass::class);`
+                }
+            ]
+        }
+    },
+    methods: {
+        toggle(idx) {
+            this.openIndex = this.openIndex === idx ? -1 : idx;
+        }
+    }
+}).mount('#app');
+</script>
+</body>
+</html> 

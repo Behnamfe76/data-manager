@@ -5,7 +5,13 @@
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "Fereydooni\\DataManager\\": "src/"
+            "DataManager\\Imports\\": "src/Imports/",
+            "DataManager\\Exports\\": "src/Exports/",
+            "DataManager\\Contracts\\": "src/Contracts/",
+            "DataManager\\Exceptions\\": "src/Exceptions/",
+            "DataManager\\Utils\\": "src/Utils/",
+            "DataManager\\Facades\\": "src/Facades/",
+            "DataManager\\Providers\\": "src/Providers/"
         }
     },
     "authors": [
