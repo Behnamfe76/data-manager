@@ -144,6 +144,7 @@
             <li><a href="#events">Event Hooks</a></li>
             <li><a href="#chunking">Batch & Chunk Processing</a></li>
             <li><a href="#queue">Asynchronous/Queued Operations</a></li>
+            <li><a href="#progress">Progress Reporting & Notifications</a></li>
             <li><a href="#utilities">Utilities</a></li>
             <li><a href="#extending">Extending</a></li>
             <li><a href="#config-options">Config Options</a></li>
@@ -330,6 +331,26 @@ DataManager::queueExport('json', $data, 'file.json', $transformer, 500);
 </code></pre>
         <div style="color:#888; font-size:0.95em; margin-top:1em;">
             <b>Note:</b> You must configure Laravel's queue system and run <code>php artisan queue:work</code> for jobs to be processed.
+        </div>
+
+        <hr class="divider"/>
+        <h2 id="progress">Progress Reporting & Notifications</h2>
+        <div class="callout">
+            <strong>Advanced!</strong> Listen for <code>import.progress</code> and <code>export.progress</code> events to track progress. You can send notifications (email, Slack, etc.) in your event handlers.
+        </div>
+        <h3>Example: Progress Listener</h3>
+        <pre><code>use DataManager\Utils\EventDispatcher;
+
+EventDispatcher::listen('import.progress', function($count, $total, $percent) {
+    echo "Imported $count of $total (" . round($percent) . "%)\n";
+});
+
+EventDispatcher::listen('export.progress', function($count, $total, $percent) {
+    // Send progress to Slack, email, etc.
+});
+</code></pre>
+        <div style="color:#888; font-size:0.95em; margin-top:1em;">
+            <b>Tip:</b> Use Laravel's notification system in your event handler to send emails, Slack messages, or other notifications.
         </div>
 
         <hr class="divider"/>

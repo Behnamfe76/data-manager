@@ -50,7 +50,7 @@ class DataManager
     }
 
     /**
-     * Import data with optional transformer, validator, event hooks, and chunking.
+     * Import data with progress events.
      *
      * @param string $type
      * @param mixed $source
@@ -93,6 +93,12 @@ class DataManager
         $validator = $validator ?: $this->validator;
         $buffer = [];
         $count = 0;
+        $total = null;
+        if (is_array($source) && isset($source[1]) && is_array($source[1])) {
+            $total = count($source[1]);
+        } elseif (is_string($source) && file_exists($source)) {
+            $total = count(file($source));
+        }
         foreach ($result as $item) {
             $original = $item;
             if ($transformer) {
@@ -106,9 +112,13 @@ class DataManager
                 }
             }
             EventDispatcher::dispatch('import.row', $item);
+            $count++;
+            if ($total) {
+                $percent = ($count / $total) * 100;
+                EventDispatcher::dispatch('import.progress', $count, $total, $percent);
+            }
             if ($chunkSize) {
                 $buffer[] = $item;
-                $count++;
                 if ($count % $chunkSize === 0) {
                     yield $buffer;
                     $buffer = [];
@@ -124,7 +134,7 @@ class DataManager
     }
 
     /**
-     * Export data with optional transformer, event hooks, and chunking.
+     * Export data with progress events.
      *
      * @param string $type
      * @param iterable $data
@@ -138,11 +148,13 @@ class DataManager
         EventDispatcher::dispatch('export.before', $type, $target);
         $transformer = $transformer ?: $this->transformer;
         $data = is_array($data) ? $data : iterator_to_array($data);
+        $total = count($data);
         if ($chunkSize) {
             $chunks = array_chunk($data, $chunkSize);
         } else {
             $chunks = [$data];
         }
+        $count = 0;
         foreach ($chunks as $chunk) {
             if ($transformer) {
                 $chunk = array_map(function ($item) use ($transformer) {
@@ -154,6 +166,11 @@ class DataManager
                 foreach ($chunk as $item) {
                     EventDispatcher::dispatch('export.row', $item);
                 }
+            }
+            $count += count($chunk);
+            if ($total) {
+                $percent = ($count / $total) * 100;
+                EventDispatcher::dispatch('export.progress', $count, $total, $percent);
             }
             try {
                 switch (strtolower($type)) {
