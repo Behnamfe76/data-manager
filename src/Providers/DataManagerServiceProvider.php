@@ -3,6 +3,8 @@
 namespace DataManager\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use DataManager\Console\ImportDataCommand;
+use DataManager\Console\ExportDataCommand;
 
 class DataManagerServiceProvider extends ServiceProvider
 {
@@ -31,5 +33,12 @@ class DataManagerServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__ . '/../../config/data-manager.php' => $this->app->basePath() . '/config/data-manager.php',
         ], 'config');
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                ImportDataCommand::class,
+                ExportDataCommand::class,
+            ]);
+        }
     }
 } 

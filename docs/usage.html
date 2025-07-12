@@ -146,6 +146,7 @@
             <li><a href="#queue">Asynchronous/Queued Operations</a></li>
             <li><a href="#progress">Progress Reporting & Notifications</a></li>
             <li><a href="#templates">Import/Export Templates</a></li>
+            <li><a href="#cli">CLI Commands</a></li>
             <li><a href="#utilities">Utilities</a></li>
             <li><a href="#extending">Extending</a></li>
             <li><a href="#config-options">Config Options</a></li>
@@ -376,6 +377,21 @@ foreach (DataManager::importWithTemplate('users_csv', 'users.csv', $errors) as $
 
 DataManager::exportWithTemplate('users_csv', $data, 'users_out.csv');
 </code></pre>
+
+        <hr class="divider"/>
+        <h2 id="cli">CLI Commands</h2>
+        <div class="callout">
+            <strong>Advanced!</strong> Use Artisan commands to import/export data from the command line.
+        </div>
+        <h3>Import Example</h3>
+        <pre><code>php artisan data-manager:import csv users.csv --chunk=100
+</code></pre>
+        <h3>Export Example</h3>
+        <pre><code>php artisan data-manager:export json data.json output.json --chunk=500
+</code></pre>
+        <div style="color:#888; font-size:0.95em; margin-top:1em;">
+            <b>Note:</b> You can pass a file path or a model class name as the data argument for export.
+        </div>
 
         <hr class="divider"/>
         <h2 id="utilities">Utilities</h2>
