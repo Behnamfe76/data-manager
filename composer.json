@@ -1,0 +1,19 @@
+{
+    "name": "fereydooni/data-manager",
+    "description": "A Laravel package to import/export data",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Fereydooni\\DataManager\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Behnam Fereydooni",
+            "email": "behnam.feg.76@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {}
+}
