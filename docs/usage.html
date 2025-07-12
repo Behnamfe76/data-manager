@@ -143,6 +143,7 @@
             <li><a href="#validation">Validation</a></li>
             <li><a href="#events">Event Hooks</a></li>
             <li><a href="#chunking">Batch & Chunk Processing</a></li>
+            <li><a href="#queue">Asynchronous/Queued Operations</a></li>
             <li><a href="#utilities">Utilities</a></li>
             <li><a href="#extending">Extending</a></li>
             <li><a href="#config-options">Config Options</a></li>
@@ -311,6 +312,25 @@ foreach (DataManager::import('csv', 'file.csv', null, null, $errors, 100) as $ch
 
 DataManager::export('json', $data, 'file.json', null, 500); // Exports in chunks of 500
 </code></pre>
+
+        <hr class="divider"/>
+        <h2 id="queue">Asynchronous/Queued Operations</h2>
+        <div class="callout">
+            <strong>Advanced!</strong> You can run import/export jobs asynchronously using Laravel queues. Make sure your queue worker is running.
+        </div>
+        <h3>Example: Queue an Import Job</h3>
+        <pre><code>use DataManager\Facades\DataManager;
+
+DataManager::queueImport('csv', 'file.csv', $transformer, $validator, 100);
+</code></pre>
+        <h3>Example: Queue an Export Job</h3>
+        <pre><code>use DataManager\Facades\DataManager;
+
+DataManager::queueExport('json', $data, 'file.json', $transformer, 500);
+</code></pre>
+        <div style="color:#888; font-size:0.95em; margin-top:1em;">
+            <b>Note:</b> You must configure Laravel's queue system and run <code>php artisan queue:work</code> for jobs to be processed.
+        </div>
 
         <hr class="divider"/>
         <h2 id="utilities">Utilities</h2>

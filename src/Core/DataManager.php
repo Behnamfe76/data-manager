@@ -17,6 +17,8 @@ use DataManager\Exports\ModelExporter;
 use DataManager\Imports\SpatieDataImporter;
 use DataManager\Exports\SpatieDataExporter;
 use DataManager\Utils\EventDispatcher;
+use DataManager\Jobs\ImportJob;
+use DataManager\Jobs\ExportJob;
 
 class DataManager
 {
@@ -178,6 +180,36 @@ class DataManager
             }
         }
         EventDispatcher::dispatch('export.after', $type, $target);
+    }
+
+    /**
+     * Dispatch an import job to the queue.
+     *
+     * @param string $type
+     * @param mixed $source
+     * @param callable|object|null $transformer
+     * @param callable|object|null $validator
+     * @param int|null $chunkSize
+     * @return void
+     */
+    public function queueImport($type, $source, $transformer = null, $validator = null, $chunkSize = null)
+    {
+        ImportJob::dispatch($type, $source, $transformer, $validator, $chunkSize);
+    }
+
+    /**
+     * Dispatch an export job to the queue.
+     *
+     * @param string $type
+     * @param iterable $data
+     * @param mixed $target
+     * @param callable|object|null $transformer
+     * @param int|null $chunkSize
+     * @return void
+     */
+    public function queueExport($type, $data, $target, $transformer = null, $chunkSize = null)
+    {
+        ExportJob::dispatch($type, $data, $target, $transformer, $chunkSize);
     }
 
     /**
