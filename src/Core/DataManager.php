@@ -111,7 +111,28 @@ class DataManager
     }
 
     /**
-     * Import data with progress events.
+     * Detect the data format from file extension or content.
+     *
+     * @param mixed $source
+     * @return string|null
+     */
+    protected function detectFormat($source): ?string
+    {
+        if (is_string($source)) {
+            $ext = strtolower(pathinfo($source, PATHINFO_EXTENSION));
+            switch ($ext) {
+                case 'csv': return 'csv';
+                case 'json': return 'json';
+                case 'xml': return 'xml';
+                case 'sql': return 'sql';
+                case 'xlsx': case 'xls': return 'excel';
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Import data with auto-detection of format if type is 'auto'.
      *
      * @param string $type
      * @param mixed $source
@@ -123,6 +144,13 @@ class DataManager
      */
     public function import(string $type, $source, $transformer = null, $validator = null, array &$errors = [], int $chunkSize = null)
     {
+        if ($type === 'auto') {
+            $detected = $this->detectFormat($source);
+            if (!$detected) {
+                throw new \InvalidArgumentException('Could not auto-detect format for import.');
+            }
+            $type = $detected;
+        }
         EventDispatcher::dispatch('import.before', $type, $source);
         $result = null;
         switch (strtolower($type)) {
@@ -195,7 +223,7 @@ class DataManager
     }
 
     /**
-     * Export data with progress events.
+     * Export data with auto-detection of format if type is 'auto'.
      *
      * @param string $type
      * @param iterable $data
@@ -206,6 +234,13 @@ class DataManager
      */
     public function export(string $type, iterable $data, $target, $transformer = null, int $chunkSize = null)
     {
+        if ($type === 'auto') {
+            $detected = $this->detectFormat($target);
+            if (!$detected) {
+                throw new \InvalidArgumentException('Could not auto-detect format for export.');
+            }
+            $type = $detected;
+        }
         EventDispatcher::dispatch('export.before', $type, $target);
         $transformer = $transformer ?: $this->transformer;
         $data = is_array($data) ? $data : iterator_to_array($data);
