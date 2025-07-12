@@ -154,6 +154,7 @@
             <li><a href="#webui">Web UI</a></li>
             <li><a href="#autodetect">Multi-format Auto-detection</a></li>
             <li><a href="#external">External Storage Integration</a></li>
+            <li><a href="#audit">Audit Logging</a></li>
         </ul>
     </nav>
     <div class="main-content">
@@ -412,6 +413,29 @@ DataManager::export('auto', $data, 's3://bucket/output.json');
 </code></pre>
         <div style="color:#888; font-size:0.95em; margin-top:1em;">
             <b>Note:</b> Supported disks: any configured in <code>config/filesystems.php</code> (e.g., s3, ftp, local, etc.).
+        </div>
+
+        <hr class="divider"/>
+        <h2 id="audit">Audit Logging</h2>
+        <div class="callout">
+            <strong>Advanced!</strong> All import/export operations are logged to <code>storage/logs/data-manager-audit.log</code> with metadata (type, source/target, user, time, status).
+        </div>
+        <h3>Sample Log Entry</h3>
+        <pre><code>{
+  "timestamp": "2024-06-01 12:34:56",
+  "user": 1,
+  "action": "import",
+  "meta": {
+    "type": "csv",
+    "source": "users.csv",
+    "chunkSize": 100,
+    "status": "success",
+    "errorCount": 0
+  }
+}
+</code></pre>
+        <div style="color:#888; font-size:0.95em; margin-top:1em;">
+            <b>Note:</b> You can parse this log for auditing, monitoring, or analytics.
         </div>
 
         <hr class="divider"/>

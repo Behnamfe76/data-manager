@@ -163,6 +163,25 @@ class DataManager
     }
 
     /**
+     * Log an audit entry for import/export operations.
+     *
+     * @param string $action
+     * @param array $meta
+     * @return void
+     */
+    protected function auditLog($action, array $meta)
+    {
+        $logFile = storage_path('logs/data-manager-audit.log');
+        $entry = [
+            'timestamp' => date('Y-m-d H:i:s'),
+            'user' => function_exists('auth') && auth()->check() ? auth()->user()->id : null,
+            'action' => $action,
+            'meta' => $meta
+        ];
+        file_put_contents($logFile, json_encode($entry) . "\n", FILE_APPEND);
+    }
+
+    /**
      * Import data with auto-detection of format if type is 'auto'.
      *
      * @param string $type
@@ -175,88 +194,102 @@ class DataManager
      */
     public function import(string $type, $source, $transformer = null, $validator = null, array &$errors = [], int $chunkSize = null)
     {
-        if ($type === 'auto') {
-            $detected = $this->detectFormat($source);
-            if (!$detected) {
-                throw new \InvalidArgumentException('Could not auto-detect format for import.');
+        $status = 'success';
+        try {
+            if ($type === 'auto') {
+                $detected = $this->detectFormat($source);
+                if (!$detected) {
+                    throw new \InvalidArgumentException('Could not auto-detect format for import.');
+                }
+                $type = $detected;
             }
-            $type = $detected;
-        }
-        // If source is a disk path, fetch to temp file and use that
-        if (is_string($source) && preg_match('/^([a-z0-9_]+):\/\//i', $source)) {
-            $tmp = tempnam(sys_get_temp_dir(), 'dm_');
-            file_put_contents($tmp, $this->readFile($source));
-            $source = $tmp;
-        }
-        EventDispatcher::dispatch('import.before', $type, $source);
-        $result = null;
-        switch (strtolower($type)) {
-            case 'csv':
-                $result = (new CsvImporter())->import($source);
-                break;
-            case 'json':
-                $result = (new JsonImporter())->import($source);
-                break;
-            case 'xml':
-                $result = (new XmlImporter())->import($source);
-                break;
-            case 'sql':
-                $result = (new SqlImporter())->import($source);
-                break;
-            case 'excel':
-                $result = (new ExcelImporter())->import($source);
-                break;
-            case 'model':
-                $result = (new ModelImporter())->import($source);
-                break;
-            case 'spatie':
-                $result = (new SpatieDataImporter())->import($source);
-                break;
-            default:
-                throw new \InvalidArgumentException("Unsupported import type: $type");
-        }
-        $transformer = $transformer ?: $this->transformer;
-        $validator = $validator ?: $this->validator;
-        $buffer = [];
-        $count = 0;
-        $total = null;
-        if (is_array($source) && isset($source[1]) && is_array($source[1])) {
-            $total = count($source[1]);
-        } elseif (is_string($source) && file_exists($source)) {
-            $total = count(file($source));
-        }
-        foreach ($result as $item) {
-            $original = $item;
-            if ($transformer) {
-                $item = self::applyTransformer($transformer, $item);
+            // If source is a disk path, fetch to temp file and use that
+            if (is_string($source) && preg_match('/^([a-z0-9_]+):\/\//i', $source)) {
+                $tmp = tempnam(sys_get_temp_dir(), 'dm_');
+                file_put_contents($tmp, $this->readFile($source));
+                $source = $tmp;
             }
-            if ($validator) {
-                if (!self::applyValidator($validator, $item)) {
-                    $errors[] = $original;
-                    EventDispatcher::dispatch('import.error', $original);
-                    continue;
+            EventDispatcher::dispatch('import.before', $type, $source);
+            $result = null;
+            switch (strtolower($type)) {
+                case 'csv':
+                    $result = (new CsvImporter())->import($source);
+                    break;
+                case 'json':
+                    $result = (new JsonImporter())->import($source);
+                    break;
+                case 'xml':
+                    $result = (new XmlImporter())->import($source);
+                    break;
+                case 'sql':
+                    $result = (new SqlImporter())->import($source);
+                    break;
+                case 'excel':
+                    $result = (new ExcelImporter())->import($source);
+                    break;
+                case 'model':
+                    $result = (new ModelImporter())->import($source);
+                    break;
+                case 'spatie':
+                    $result = (new SpatieDataImporter())->import($source);
+                    break;
+                default:
+                    throw new \InvalidArgumentException("Unsupported import type: $type");
+            }
+            $transformer = $transformer ?: $this->transformer;
+            $validator = $validator ?: $this->validator;
+            $buffer = [];
+            $count = 0;
+            $total = null;
+            if (is_array($source) && isset($source[1]) && is_array($source[1])) {
+                $total = count($source[1]);
+            } elseif (is_string($source) && file_exists($source)) {
+                $total = count(file($source));
+            }
+            foreach ($result as $item) {
+                $original = $item;
+                if ($transformer) {
+                    $item = self::applyTransformer($transformer, $item);
+                }
+                if ($validator) {
+                    if (!self::applyValidator($validator, $item)) {
+                        $errors[] = $original;
+                        EventDispatcher::dispatch('import.error', $original);
+                        continue;
+                    }
+                }
+                EventDispatcher::dispatch('import.row', $item);
+                $count++;
+                if ($total) {
+                    $percent = ($count / $total) * 100;
+                    EventDispatcher::dispatch('import.progress', $count, $total, $percent);
+                }
+                if ($chunkSize) {
+                    $buffer[] = $item;
+                    if ($count % $chunkSize === 0) {
+                        yield $buffer;
+                        $buffer = [];
+                    }
+                } else {
+                    yield $item;
                 }
             }
-            EventDispatcher::dispatch('import.row', $item);
-            $count++;
-            if ($total) {
-                $percent = ($count / $total) * 100;
-                EventDispatcher::dispatch('import.progress', $count, $total, $percent);
+            if ($chunkSize && !empty($buffer)) {
+                yield $buffer;
             }
-            if ($chunkSize) {
-                $buffer[] = $item;
-                if ($count % $chunkSize === 0) {
-                    yield $buffer;
-                    $buffer = [];
-                }
-            } else {
-                yield $item;
-            }
+            EventDispatcher::dispatch('import.after', $type, $source);
+        } catch (\Throwable $e) {
+            $status = 'error';
+            throw $e;
+        } finally {
+            $this->auditLog('import', [
+                'type' => $type,
+                'source' => $source,
+                'chunkSize' => $chunkSize,
+                'status' => $status,
+                'errorCount' => count($errors ?? []),
+            ]);
         }
-        if ($chunkSize && !empty($buffer)) {
-            yield $buffer;
-        }
-        EventDispatcher::dispatch('import.after', $type, $source);
     }
 
     /**
@@ -271,74 +304,87 @@ class DataManager
      */
     public function export(string $type, iterable $data, $target, $transformer = null, int $chunkSize = null)
     {
-        if ($type === 'auto') {
-            $detected = $this->detectFormat($target);
-            if (!$detected) {
-                throw new \InvalidArgumentException('Could not auto-detect format for export.');
+        $status = 'success';
+        try {
+            if ($type === 'auto') {
+                $detected = $this->detectFormat($target);
+                if (!$detected) {
+                    throw new \InvalidArgumentException('Could not auto-detect format for export.');
+                }
+                $type = $detected;
             }
-            $type = $detected;
-        }
-        // If target is a disk path, write to temp file and upload after
-        $toDisk = null;
-        if (is_string($target) && preg_match('/^([a-z0-9_]+):\/\//i', $target)) {
-            $toDisk = $target;
-            $target = tempnam(sys_get_temp_dir(), 'dm_');
-        }
-        EventDispatcher::dispatch('export.before', $type, $target);
-        $transformer = $transformer ?: $this->transformer;
-        $data = is_array($data) ? $data : iterator_to_array($data);
-        $total = count($data);
-        if ($chunkSize) {
-            $chunks = array_chunk($data, $chunkSize);
-        } else {
-            $chunks = [$data];
-        }
-        $count = 0;
-        foreach ($chunks as $chunk) {
-            if ($transformer) {
-                $chunk = array_map(function ($item) use ($transformer) {
-                    $item = self::applyTransformer($transformer, $item);
-                    EventDispatcher::dispatch('export.row', $item);
-                    return $item;
-                }, $chunk);
+            // If target is a disk path, write to temp file and upload after
+            $toDisk = null;
+            if (is_string($target) && preg_match('/^([a-z0-9_]+):\/\//i', $target)) {
+                $toDisk = $target;
+                $target = tempnam(sys_get_temp_dir(), 'dm_');
+            }
+            EventDispatcher::dispatch('export.before', $type, $target);
+            $transformer = $transformer ?: $this->transformer;
+            $data = is_array($data) ? $data : iterator_to_array($data);
+            $total = count($data);
+            if ($chunkSize) {
+                $chunks = array_chunk($data, $chunkSize);
             } else {
-                foreach ($chunk as $item) {
-                    EventDispatcher::dispatch('export.row', $item);
+                $chunks = [$data];
+            }
+            $count = 0;
+            foreach ($chunks as $chunk) {
+                if ($transformer) {
+                    $chunk = array_map(function ($item) use ($transformer) {
+                        $item = self::applyTransformer($transformer, $item);
+                        EventDispatcher::dispatch('export.row', $item);
+                        return $item;
+                    }, $chunk);
+                } else {
+                    foreach ($chunk as $item) {
+                        EventDispatcher::dispatch('export.row', $item);
+                    }
+                }
+                $count += count($chunk);
+                if ($total) {
+                    $percent = ($count / $total) * 100;
+                    EventDispatcher::dispatch('export.progress', $count, $total, $percent);
+                }
+                try {
+                    switch (strtolower($type)) {
+                        case 'csv':
+                            (new CsvExporter())->export($chunk, $target); break;
+                        case 'json':
+                            (new JsonExporter())->export($chunk, $target); break;
+                        case 'xml':
+                            (new XmlExporter())->export($chunk, $target); break;
+                        case 'sql':
+                            (new SqlExporter())->export($chunk, $target); break;
+                        case 'excel':
+                            (new ExcelExporter())->export($chunk, $target); break;
+                        case 'model':
+                            (new ModelExporter())->export($chunk, $target); break;
+                        case 'spatie':
+                            (new SpatieDataExporter())->export($chunk, $target); break;
+                        default:
+                            throw new \InvalidArgumentException("Unsupported export type: $type");
+                    }
+                } catch (\Throwable $e) {
+                    EventDispatcher::dispatch('export.error', $e);
+                    throw $e;
                 }
             }
-            $count += count($chunk);
-            if ($total) {
-                $percent = ($count / $total) * 100;
-                EventDispatcher::dispatch('export.progress', $count, $total, $percent);
+            EventDispatcher::dispatch('export.after', $type, $target);
+            if ($toDisk) {
+                $this->writeFile($toDisk, file_get_contents($target));
+                unlink($target);
             }
-            try {
-                switch (strtolower($type)) {
-                    case 'csv':
-                        (new CsvExporter())->export($chunk, $target); break;
-                    case 'json':
-                        (new JsonExporter())->export($chunk, $target); break;
-                    case 'xml':
-                        (new XmlExporter())->export($chunk, $target); break;
-                    case 'sql':
-                        (new SqlExporter())->export($chunk, $target); break;
-                    case 'excel':
-                        (new ExcelExporter())->export($chunk, $target); break;
-                    case 'model':
-                        (new ModelExporter())->export($chunk, $target); break;
-                    case 'spatie':
-                        (new SpatieDataExporter())->export($chunk, $target); break;
-                    default:
-                        throw new \InvalidArgumentException("Unsupported export type: $type");
-                }
-            } catch (\Throwable $e) {
-                EventDispatcher::dispatch('export.error', $e);
-                throw $e;
-            }
-        }
-        EventDispatcher::dispatch('export.after', $type, $target);
-        if ($toDisk) {
-            $this->writeFile($toDisk, file_get_contents($target));
-            unlink($target);
+        } catch (\Throwable $e) {
+            $status = 'error';
+            throw $e;
+        } finally {
+            $this->auditLog('export', [
+                'type' => $type,
+                'target' => $target,
+                'chunkSize' => $chunkSize,
+                'status' => $status,
+            ]);
         }
     }
 
